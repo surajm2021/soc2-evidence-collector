@@ -1,7 +1,5 @@
 # soc2-evidence-collector
 
-_Built and maintained with an AI coding agent (Claude, by Anthropic) under the direction of [@surajm2021](https://github.com/surajm2021)._
-
 Collect SOC 2 audit evidence from AWS accounts.
 
 Each check calls read-only AWS APIs, decides PASS or FAIL, and keeps the raw data it looked at so
