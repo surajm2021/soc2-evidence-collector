@@ -9,14 +9,15 @@ import boto3
 from soc2_evidence import __version__
 from soc2_evidence.bundle import write_bundle
 from soc2_evidence.checks import ALL_CHECKS
-from soc2_evidence.models import CheckResult, Status
+from soc2_evidence.models import CheckResult, Context, Status
 
 
-def run_checks(session, names: list[str]) -> list[CheckResult]:
+def run_checks(session, names: list[str], ctx: Context | None = None) -> list[CheckResult]:
+    ctx = ctx or Context()
     results = []
     for name in names:
         try:
-            results.append(ALL_CHECKS[name](session))
+            results.append(ALL_CHECKS[name](session, ctx))
         except Exception as exc:  # noqa: BLE001 - one broken check must not hide the others
             results.append(
                 CheckResult(
@@ -30,10 +31,22 @@ def run_checks(session, names: list[str]) -> list[CheckResult]:
 
 
 def render_table(results: list[CheckResult]) -> str:
-    lines = [f"{r.status:<6} {r.check:<20} {','.join(r.controls):<8} {r.summary}" for r in results]
+    lines = [f"{r.status:<6} {r.check:<28} {','.join(r.controls):<12} {r.summary}" for r in results]
     failed = sum(r.status != Status.PASS for r in results)
     lines += ["", f"{len(results) - failed} passed, {failed} need attention"]
     return "\n".join(lines)
+
+
+def _common(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--profile", help="AWS named profile")
+    p.add_argument("--region", default="us-east-1", help="region for global APIs")
+    p.add_argument("--check", action="append", choices=sorted(ALL_CHECKS))
+    p.add_argument(
+        "--max-key-age-days",
+        type=int,
+        default=Context.max_key_age_days,
+        help="access keys older than this fail access-key-age (default: %(default)s)",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -41,15 +54,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="run checks and print the results")
-    run.add_argument("--profile", help="AWS named profile")
-    run.add_argument("--region", default="us-east-1", help="region for regional APIs")
-    run.add_argument("--check", action="append", choices=sorted(ALL_CHECKS))
+    _common(run)
     run.add_argument("--json", action="store_true", help="print raw results as JSON")
 
     collect = sub.add_parser("collect", help="run checks and write a dated evidence bundle")
-    collect.add_argument("--profile", help="AWS named profile")
-    collect.add_argument("--region", default="us-east-1", help="region for regional APIs")
-    collect.add_argument("--check", action="append", choices=sorted(ALL_CHECKS))
+    _common(collect)
     collect.add_argument("--out", default="evidence", help="output directory (default: evidence)")
     collect.add_argument(
         "--strict", action="store_true", help="exit with status 1 if any check does not pass"
@@ -60,7 +69,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     session = boto3.Session(profile_name=args.profile, region_name=args.region)
-    results = run_checks(session, args.check or sorted(ALL_CHECKS))
+    ctx = Context(regions=(args.region,), max_key_age_days=args.max_key_age_days)
+    results = run_checks(session, args.check or sorted(ALL_CHECKS), ctx)
     all_passed = all(r.status == Status.PASS for r in results)
 
     if args.command == "collect":

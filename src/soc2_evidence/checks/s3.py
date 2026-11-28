@@ -1,6 +1,6 @@
 from botocore.exceptions import ClientError
 
-from soc2_evidence.models import CheckResult, Status
+from soc2_evidence.models import CheckResult, Context, Status
 
 CHECK_ID = "s3-encryption-public-access"
 CONTROLS = ["CC6.1", "CC6.7"]
@@ -47,7 +47,7 @@ def _bucket_pab(s3, bucket: str) -> bool:
     return all(cfg.get(f) for f in PAB_FLAGS)
 
 
-def buckets_encrypted_and_private(session) -> CheckResult:
+def buckets_encrypted_and_private(session, ctx: Context | None = None) -> CheckResult:
     """Every bucket has default encryption and is covered by Block Public Access.
 
     Block Public Access counts if it is enabled on the bucket or for the whole

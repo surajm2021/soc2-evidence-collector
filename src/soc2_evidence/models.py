@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import StrEnum
 
 
@@ -28,3 +29,12 @@ class CheckResult:
             "failing_resources": self.failing_resources,
             "evidence": self.evidence,
         }
+
+
+@dataclass(frozen=True)
+class Context:
+    """Options shared by every check."""
+
+    regions: tuple[str, ...] = ("us-east-1",)
+    max_key_age_days: int = 90
+    now: datetime | None = None

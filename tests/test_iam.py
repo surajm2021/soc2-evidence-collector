@@ -46,7 +46,7 @@ def test_fails_and_lists_users_without_mfa(session):
 def test_broken_check_is_reported_as_error(session, monkeypatch):
     from soc2_evidence import checks
 
-    def boom(_session):
+    def boom(_session, _ctx=None):
         raise RuntimeError("AccessDenied")
 
     monkeypatch.setitem(checks.ALL_CHECKS, "iam-console-mfa", boom)

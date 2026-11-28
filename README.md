@@ -14,6 +14,8 @@ an auditor can see exactly what was checked and when.
 | Check | SOC 2 criteria | Passes when |
 |-------|----------------|-------------|
 | `iam-console-mfa` | CC6.1 | every IAM user with a console password has an MFA device |
+| `root-account` | CC6.1 | the root user has MFA and no active access keys (from the IAM credential report) |
+| `access-key-age` | CC6.1 | every active access key was rotated within `--max-key-age-days` (default 90) |
 | `cloudtrail-enabled` | CC7.2 | at least one multi-region trail is logging with log file validation enabled |
 | `s3-encryption-public-access` | CC6.1, CC6.7 | every bucket has default encryption and Block Public Access (bucket or account level) |
 

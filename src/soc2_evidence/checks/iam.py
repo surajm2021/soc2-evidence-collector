@@ -1,4 +1,4 @@
-from soc2_evidence.models import CheckResult, Status
+from soc2_evidence.models import CheckResult, Context, Status
 
 CHECK_ID = "iam-console-mfa"
 CONTROLS = ["CC6.1"]
@@ -12,7 +12,7 @@ def _has_console_password(iam, user_name: str) -> bool:
         return False
 
 
-def console_users_have_mfa(session) -> CheckResult:
+def console_users_have_mfa(session, ctx: Context | None = None) -> CheckResult:
     """Every IAM user that can sign in to the console must have an MFA device."""
     iam = session.client("iam")
     console_users, without_mfa = [], []

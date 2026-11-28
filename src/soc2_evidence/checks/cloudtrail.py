@@ -1,10 +1,10 @@
-from soc2_evidence.models import CheckResult, Status
+from soc2_evidence.models import CheckResult, Context, Status
 
 CHECK_ID = "cloudtrail-enabled"
 CONTROLS = ["CC7.2"]
 
 
-def multi_region_trail_logging(session) -> CheckResult:
+def multi_region_trail_logging(session, ctx: Context | None = None) -> CheckResult:
     """At least one multi-region trail is logging with log file validation on."""
     ct = session.client("cloudtrail")
     trails = ct.describe_trails(includeShadowTrails=False)["trailList"]
