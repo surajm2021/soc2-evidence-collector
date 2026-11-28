@@ -7,6 +7,7 @@ import sys
 import boto3
 
 from soc2_evidence import __version__
+from soc2_evidence.bundle import write_bundle
 from soc2_evidence.checks import ALL_CHECKS
 from soc2_evidence.models import CheckResult, Status
 
@@ -44,6 +45,15 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--region", default="us-east-1", help="region for regional APIs")
     run.add_argument("--check", action="append", choices=sorted(ALL_CHECKS))
     run.add_argument("--json", action="store_true", help="print raw results as JSON")
+
+    collect = sub.add_parser("collect", help="run checks and write a dated evidence bundle")
+    collect.add_argument("--profile", help="AWS named profile")
+    collect.add_argument("--region", default="us-east-1", help="region for regional APIs")
+    collect.add_argument("--check", action="append", choices=sorted(ALL_CHECKS))
+    collect.add_argument("--out", default="evidence", help="output directory (default: evidence)")
+    collect.add_argument(
+        "--strict", action="store_true", help="exit with status 1 if any check does not pass"
+    )
     return parser
 
 
@@ -51,11 +61,20 @@ def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     session = boto3.Session(profile_name=args.profile, region_name=args.region)
     results = run_checks(session, args.check or sorted(ALL_CHECKS))
+    all_passed = all(r.status == Status.PASS for r in results)
+
+    if args.command == "collect":
+        account_id = session.client("sts").get_caller_identity()["Account"]
+        bundle = write_bundle(results, args.out, account_id, args.region)
+        print(render_table(results))
+        print(f"\nevidence written to {bundle}")
+        return 1 if args.strict and not all_passed else 0
+
     if args.json:
         print(json.dumps([r.to_dict() for r in results], indent=2, default=str))
     else:
         print(render_table(results))
-    return 0 if all(r.status == Status.PASS for r in results) else 1
+    return 0 if all_passed else 1
 
 
 if __name__ == "__main__":

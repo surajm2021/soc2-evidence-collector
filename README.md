@@ -28,7 +28,29 @@ soc2-evidence run --profile audit
 soc2-evidence run --json > results.json
 ```
 
-The command exits with status 1 when any check fails, so it can gate a pipeline.
+`run` exits with status 1 when any check fails, so it can gate a pipeline.
+
+### Evidence bundles
+
+`collect` runs the same checks and writes a dated bundle per account:
+
+```bash
+soc2-evidence collect --profile audit --out evidence/
+```
+
+```
+evidence/
+  123456789012/
+    2026-11-24/
+      summary.md                 # pass/fail table, failing resources, checks per criterion
+      metadata.json              # account, region, timestamp, tool version
+      iam-console-mfa.json       # raw evidence for each check
+      cloudtrail-enabled.json
+      s3-encryption-public-access.json
+```
+
+Running it on a schedule (monthly or quarterly) gives auditors a dated trail of point-in-time
+evidence. Add `--strict` to exit non-zero when a check fails.
 
 ## Development
 
